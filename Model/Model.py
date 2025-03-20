@@ -127,4 +127,9 @@ plt.tight_layout()
 plt.show()
 
 # model_rf_no_u2r_r2l -> %93+
-# model_rf_no_u2r_r2l_final -> %92~93 (parametreler düzenlendikten sonra)
+
+# --Çıkarılan özellikler (Flow bazlı, Scapy ile yakalanamaz):
+# 'duration', 'count', 'srv_count', 'serror_rate', 'srv_serror_rate', 'rerror_rate'
+# 'wrong_fragment' özellik önemi çok düşük çıktığından bunu da elimine ediyoruz.
+
+# model_rf_no_u2r_r2l_final -> %92~93 (Özellikler çıkarıldıktan sonra)
