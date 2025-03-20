@@ -1,15 +1,25 @@
 import pandas as pd
-import os
-import joblib
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, f1_score
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from imblearn.over_sampling import SMOTE
 
-print("Veri yükleniyor....")
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    AdaBoostClassifier,
+    GradientBoostingClassifier,
+    BaggingClassifier,
+    ExtraTreesClassifier
+)
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from xgboost import XGBClassifier
+
 train_data = pd.read_csv('NSLKDD-DataSet/KDDTrain+.txt', header=None)
 test_data = pd.read_csv('NSLKDD-DataSet/KDDTest-21.txt', header=None)
 
@@ -19,7 +29,7 @@ columns = [
     "land", "wrong_fragment", "urgent",
     "hot", "num_failed_logins", "logged_in",
     "num_compromised", "root_shell", "su_attempted",
-    "num_root", "num_file_creations", "num_shells",
+    "num_root", "num_file_creations","num_shells",
     "num_access_files", "num_outbound_cmds", "is_host_login",
     "is_guest_login", "count", "srv_count", "serror_rate",
     "srv_serror_rate", "rerror_rate", "srv_rerror_rate",
@@ -57,11 +67,10 @@ test_data['attack_type'] = test_data['label'].map(attack_map)
 train_data.dropna(subset=['attack_type'], inplace=True)
 test_data.dropna(subset=['attack_type'], inplace=True)
 
-# R2L ve U2R sınıflarını çıkardık
+# R2L ve U2R kaldırma
 train_data = train_data[~train_data['attack_type'].isin(['R2L', 'U2R'])]
 test_data = test_data[~test_data['attack_type'].isin(['R2L', 'U2R'])]
 
-# 📌 Seçilen özellikler (Scapy ile yakalanabilir olanlar)
 selected_features = [
     'protocol_type',
     'service',
@@ -79,52 +88,35 @@ label_encoder = LabelEncoder()
 train_y_encoded = label_encoder.fit_transform(train_y)
 test_y_encoded = label_encoder.transform(test_y)
 
-# SMOTE uyguluyoruz
 smote = SMOTE(random_state=42)
 train_X_balanced, train_y_balanced = smote.fit_resample(train_X, train_y_encoded)
-train_X_balanced = pd.DataFrame(train_X_balanced, columns=selected_features)
 
-# 📌 MODEL PATH VE KAYDETME
-MODEL_DIR = "Model"
-MODEL_FILE = os.path.join(MODEL_DIR, "model_rf_no_u2r_r2l_final.joblib")
-os.makedirs(MODEL_DIR, exist_ok=True)
+models = {
+    'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
+    'Decision Tree': DecisionTreeClassifier(random_state=42),
+    'KNN': KNeighborsClassifier(n_neighbors=5),
+    'Logistic Regression': LogisticRegression(max_iter=1000),
+    'AdaBoost': AdaBoostClassifier(n_estimators=50, random_state=42),
+    'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42),
+    'Bagging': BaggingClassifier(n_estimators=50, random_state=42),
+    'Extra Trees': ExtraTreesClassifier(n_estimators=100, random_state=42),
+    'Naive Bayes': GaussianNB(),
+    'XGBoost': XGBClassifier(n_estimators=100, use_label_encoder=False, eval_metric='mlogloss', random_state=42)
+}
 
-print("Model yükleniyor veya eğitiliyor...")
-if os.path.exists(MODEL_FILE):
-    model = joblib.load(MODEL_FILE)
-else:
-    model = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=10,
-        random_state=42
-    )
+f1_scores = {}
+
+for model_name, model in models.items():
+    print(f"==> Model: {model_name}")
     model.fit(train_X_balanced, train_y_balanced)
-    joblib.dump(model, MODEL_FILE)
-    print(f"Model '{MODEL_FILE}' dosyasına kaydedildi.")
-
-y_pred = model.predict(test_X)
-print("\nSınıflandırma Sonuçları (Test Seti):")
-print(classification_report(test_y_encoded, y_pred, target_names=label_encoder.classes_))
-
-# 📌 CONFUSION MATRIX
-cm = confusion_matrix(test_y_encoded, y_pred)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
-disp.plot(cmap="Blues", values_format="d")
-plt.title("Confusion Matrix (Test Seti)")
-plt.show()
-
-# 📌 FEATURE IMPORTANCE
-feature_importance = model.feature_importances_
-importance_df = pd.DataFrame({
-    'Feature': selected_features,
-    'Importance': feature_importance
-}).sort_values(by='Importance', ascending=False)
+    y_pred = model.predict(test_X)
+    score = f1_score(test_y_encoded, y_pred, average='weighted')
+    f1_scores[model_name] = score
+    print(classification_report(test_y_encoded, y_pred))
 
 plt.figure(figsize=(10, 6))
-sns.barplot(x='Importance', y='Feature', data=importance_df, palette="viridis")
-plt.title('Feature Importance (Random Forest)')
+sns.barplot(x=list(f1_scores.values()), y=list(f1_scores.keys()), palette="viridis")
+plt.xlabel("Weighted F1-Score")
+plt.title("Model Performans Karşılaştırması (SCAPY Features)")
 plt.tight_layout()
 plt.show()
-
-# model_rf_no_u2r_r2l -> %93+
-# model_rf_no_u2r_r2l_final -> %92~93 (parametreler düzenlendikten sonra)
