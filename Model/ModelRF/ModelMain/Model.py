@@ -108,7 +108,7 @@ smote = SMOTE(random_state=42)
 train_X_balanced, train_y_balanced = smote.fit_resample(train_X, train_y_encoded)
 train_X_balanced = pd.DataFrame(train_X_balanced, columns=selected_features)
 
-MODEL_DIR = "Model/ModelRF"
+MODEL_DIR = "Model/ModelRF/ModelMain"
 MODEL_FILE = os.path.join(MODEL_DIR, "model_rf_no_u2r_r2l_final.joblib")
 os.makedirs(MODEL_DIR, exist_ok=True)
 

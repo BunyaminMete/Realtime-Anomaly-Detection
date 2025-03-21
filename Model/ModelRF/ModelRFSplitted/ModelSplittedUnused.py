@@ -43,10 +43,8 @@ test_data.columns = columns
 train_data.drop(['difficulty_level'], axis=1, inplace=True)
 test_data.drop(['difficulty_level'], axis=1, inplace=True)
 
-# Combine datasets
 data = pd.concat([train_data, test_data], ignore_index=True)
 
-# Categorical encoding
 categorical_cols = ['protocol_type', 'service', 'flag']
 encoder = LabelEncoder()
 for col in categorical_cols:
@@ -84,10 +82,8 @@ attack_map = {
 data['attack_type'] = data['label'].map(attack_map)
 data.dropna(subset=['attack_type'], inplace=True)
 
-# Remove R2L and U2R
 data = data[~data['attack_type'].isin(['R2L', 'U2R'])]
 
-# Selected Scapy-compatible features
 selected_features = [
     'protocol_type', 
     'service', 
@@ -99,19 +95,15 @@ selected_features = [
 X = data[selected_features]
 y = data['attack_type']
 
-# Encode target labels
 label_encoder = LabelEncoder()
 y_encoded = label_encoder.fit_transform(y)
 
-# 📌 %80 / %20 Split
 X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, stratify=y_encoded, random_state=42)
 
-# SMOTE uyguluyoruz
 smote = SMOTE(random_state=42)
 X_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)
 
-# 📌 Model Eğitimi ve Kaydetme
-MODEL_DIR = "Model/ModelRF"
+MODEL_DIR = "Model/ModelRF/ModelRFSplitted"
 MODEL_FILE = os.path.join(MODEL_DIR, "model_rf_80_20_split.joblib")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
@@ -124,19 +116,16 @@ else:
     joblib.dump(model, MODEL_FILE)
     print(f"Model '{MODEL_FILE}' dosyasına kaydedildi.")
 
-# Tahmin ve Rapor
 y_pred = model.predict(X_test)
 print("\nSınıflandırma Sonuçları (Test Seti):")
 print(classification_report(y_test, y_pred, target_names=label_encoder.classes_))
 
-# Confusion Matrix
 cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
 disp.plot(cmap="Blues", values_format="d")
 plt.title("Confusion Matrix (Test Seti)")
 plt.show()
 
-# Feature Importance
 feature_importance = model.feature_importances_
 importance_df = pd.DataFrame({'Feature': selected_features, 'Importance': feature_importance}).sort_values(by='Importance', ascending=False)
 
