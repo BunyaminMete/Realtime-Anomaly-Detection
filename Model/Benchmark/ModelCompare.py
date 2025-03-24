@@ -95,7 +95,7 @@ models = {
     'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
     'Decision Tree': DecisionTreeClassifier(random_state=42),
     'KNN': KNeighborsClassifier(n_neighbors=5),
-    'Logistic Regression': LogisticRegression(max_iter=1000),
+    'Logistic Regression': LogisticRegression(max_iter=50),
     'AdaBoost': AdaBoostClassifier(n_estimators=50, random_state=42),
     'Gradient Boosting': GradientBoostingClassifier(n_estimators=100, random_state=42),
     'Bagging': BaggingClassifier(n_estimators=50, random_state=42),
