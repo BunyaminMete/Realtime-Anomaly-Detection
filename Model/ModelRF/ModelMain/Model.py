@@ -1,3 +1,4 @@
+import warnings
 import pandas as pd
 import os
 import joblib
@@ -9,7 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from imblearn.over_sampling import SMOTE
 
-print("Veri yükleniyor....")
+warnings.filterwarnings("ignore", category=FutureWarning)
+print("Veri yükleniyor...")
 train_data = pd.read_csv('NSLKDD-DataSet/KDDTrain+.txt', header=None)
 test_data = pd.read_csv('NSLKDD-DataSet/KDDTest-21.txt', header=None)
 
@@ -44,10 +46,19 @@ train_data.drop(['difficulty_level'], axis=1, inplace=True)
 test_data.drop(['difficulty_level'], axis=1, inplace=True)
 
 categorical_cols = ['protocol_type', 'service', 'flag']
-encoder = LabelEncoder()
+encoders = {}
+
 for col in categorical_cols:
-    train_data[col] = encoder.fit_transform(train_data[col])
-    test_data[col] = encoder.transform(test_data[col])
+    enc = LabelEncoder()
+    train_data[col] = enc.fit_transform(train_data[col])
+    test_data[col] = enc.transform(test_data[col])
+    encoders[col] = enc  # Encoder objelerini saklıyoruz
+
+print("\nKategorik Değerlerin Orijinal Karşılıkları:")
+for col in categorical_cols:
+    encoder = encoders[col]
+    categories = encoder.classes_
+    print(f"\n {col} -> {', '.join(categories)}")
 
 attack_map = {
     'normal': 'normal',
@@ -92,7 +103,8 @@ selected_features = [
     'service',
     'flag',
     'src_bytes',
-    'dst_bytes'
+    'dst_bytes',
+    "land"
 ]
 
 train_X = train_data[selected_features]
@@ -109,7 +121,7 @@ train_X_balanced, train_y_balanced = smote.fit_resample(train_X, train_y_encoded
 train_X_balanced = pd.DataFrame(train_X_balanced, columns=selected_features)
 
 MODEL_DIR = "Model/ModelRF/ModelMain"
-MODEL_FILE = os.path.join(MODEL_DIR, "model_rf_no_u2r_r2l.joblib")
+MODEL_FILE = os.path.join(MODEL_DIR, "model_rf_no_u2r_r2l_final.joblib")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 print("Model yükleniyor veya eğitiliyor...")
