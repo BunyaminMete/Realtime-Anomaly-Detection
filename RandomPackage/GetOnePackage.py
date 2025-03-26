@@ -1,4 +1,6 @@
 from scapy.all import sniff, TCP, UDP, IP, ICMP
+from PortToService import get_service_name
+from ServiceToNumeric import get_service_numeric_index
 
 # A: ACK -> Acknowledgment
 # P: PSH -> Push
@@ -62,13 +64,15 @@ def process_packet(pkt):
     #########################################################
 
     nsl_flag = nsl_kdd_flag_mapping(pkt)
+    serviceName = get_service_name(service)
+    serviceKDD = get_service_numeric_index(serviceName)
 
     print(f"Source IP: {src_ip}")
     print(f"Destination IP: {dst_ip}")
     print(f"Source Bytes (IP payload): {src_bytes}")
     print(f"Destination Bytes (Proto payload): {dst_bytes}")
     print(f"Protocol: {protocol}")
-    print(f"Service (Port): {service}")
+    print(f"Service: {serviceKDD}")
     print(f"Land: {land}")
     print(f"NSL-KDD Flag: {nsl_flag}")
     print("-" * 50)
@@ -79,4 +83,3 @@ for pkt in packets:
     process_packet(pkt)
 
 #https://scapy.readthedocs.io/en/latest/usage.html
-
