@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import learning_curve
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 print("Veri yükleniyor...")
@@ -137,6 +138,43 @@ else:
     joblib.dump(model, MODEL_FILE)
     print(f"Model '{MODEL_FILE}' dosyasına kaydedildi.")
 
+y_train_pred = model.predict(train_X_balanced)
+print("\nSınıflandırma Sonuçları (Eğitim Seti):")
+print(classification_report(train_y_balanced, y_train_pred, target_names=label_encoder.classes_))
+
+cm_train = confusion_matrix(train_y_balanced, y_train_pred)
+disp_train = ConfusionMatrixDisplay(confusion_matrix=cm_train, display_labels=label_encoder.classes_)
+disp_train.plot(cmap="Greens", values_format="d")
+plt.title("Karmaşıklık Matrisi (Eğitim Seti)")
+plt.show()
+
+"""""
+train_sizes, train_scores, test_scores = learning_curve(
+    model,
+    train_X_balanced,
+    train_y_balanced,
+    cv=5,
+    scoring='accuracy',
+    train_sizes=[0.1, 0.3, 0.5, 0.7, 1.0],
+    random_state=42,
+    shuffle=True
+)
+
+train_mean = train_scores.mean(axis=1)
+test_mean = test_scores.mean(axis=1)
+
+plt.figure(figsize=(10, 6))
+plt.plot(train_sizes, train_mean, label='Eğitim Doğruluğu')
+plt.plot(train_sizes, test_mean, label='Doğrulama (Cross-val) Doğruluğu')
+plt.xlabel('Eğitim Seti Boyutu')
+plt.ylabel('Doğruluk')
+plt.title('Learning Curve - RandomForest')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+"""""
+
 y_pred = model.predict(test_X)
 print("\nSınıflandırma Sonuçları (Test Seti):")
 print(classification_report(test_y_encoded, y_pred, target_names=label_encoder.classes_))
@@ -144,7 +182,7 @@ print(classification_report(test_y_encoded, y_pred, target_names=label_encoder.c
 cm = confusion_matrix(test_y_encoded, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=label_encoder.classes_)
 disp.plot(cmap="Blues", values_format="d")
-plt.title("Confusion Matrix (Test Seti)")
+plt.title("Karmaşıklık Matrisi (Test Seti)")
 plt.show()
 
 feature_importance = model.feature_importances_
@@ -155,7 +193,7 @@ importance_df = pd.DataFrame({
 
 plt.figure(figsize=(10, 6))
 sns.barplot(x='Importance', y='Feature', data=importance_df, palette="viridis")
-plt.title('Feature Importance (Random Forest)')
+plt.title('Özellik Önemi (Random Forest)')
 plt.tight_layout()
 plt.show()
 
